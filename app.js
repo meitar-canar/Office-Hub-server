@@ -1,21 +1,23 @@
-var express = require('express');
-var app = express();
+const express = require('express');
+const app = express();
+const cors = require("cors");
 const cookieParser = require('cookie-parser');
-const auth = require('./auth/auth');
+const { checkJwtToken, signIn } = require('./auth/auth'); // Correct import
+
+app.use(cors({ origin: "https://office-hub-server.onrender.com" }));
+
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+app.post('/signIn', signIn);
 
-// this must be first
-app.use('/auth', (req, res, next) => {
-    auth.checkJwtToken(req, res);
-    next();
-});
+// Use JWT token middleware for routes starting with /auth
+app.use('/auth', checkJwtToken);
 
-app.post('/signIn', (req, res) => {
-    auth.signIn(req, res);
-})
+const paymentRoutes = require('./routes/payMentRoutes');
+app.use('/auth/payments', paymentRoutes);
+
 const emailRoutes = require('./routes/emailRoutes');
 app.use('/api', emailRoutes);
 
@@ -44,9 +46,8 @@ app.use('/auth/calendar', calendarRoutes);
 app.use('/calendar', calendarRoutes);
 
 app.use(express.static('build'));
-//=================================================
-const port = process.env.PORT || 3001;
 
-app.listen(port, function () {
-    console.log(`My app is listening on port ${port}!`);
+const port = process.env.PORT || 3001;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
 });
